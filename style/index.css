@@ -1,0 +1,99 @@
+.brands {
+    max-width: 1240px;
+    margin: 0 auto;
+}
+.custom-container{
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+
+.new-arrivals-section {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+.new-arrivals-title {
+  font-size: 1.875rem;
+  line-height: 1.2;
+}
+
+.bg-product {
+  background-color: #F0EEED;
+}
+
+.rounded-20 {
+  border-radius: 20px;
+}
+
+.product-image {
+  cursor: pointer;
+  aspect-ratio: 1 / 1;
+  transition: transform 0.2s ease;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.02);
+}
+
+.product-image img {
+  object-fit: contain;
+}
+
+.mix-blend-multiply {
+  mix-blend-mode: multiply;
+}
+
+.product-price {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.discount-badge {
+  background-color: #FEE2E2;
+  color: #FF3333;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+}
+
+.view-all-btn {
+  padding: 0.75rem 4rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.section-divider {
+  border-color: #E5E7EB;
+  opacity: 1;
+}
+
+
+
+@media (min-width: 576px) {
+  .new-arrivals-section {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+
+  .new-arrivals-title {
+    font-size: 2.25rem;
+  }
+
+  .product-price {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .new-arrivals-title {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 992px) {
+  .new-arrivals-title {
+    margin-bottom: 3.5rem !important;
+  }
+}

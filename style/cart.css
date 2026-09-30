@@ -1,0 +1,27 @@
+.cart-thumbnail {
+  width: 112px;
+  height: 112px;
+}
+
+.cart-jeans-icon {
+  width: 64px;
+  height: 80px;
+}
+
+.quantity-control {
+  min-width: 110px;
+}
+
+@media (max-width: 575.98px) {
+  .cart-thumbnail {
+    width: 96px;
+    height: 96px;
+  }
+
+  .cart-jeans-icon {
+    width: 56px;
+    height: 72px;
+  }
+}.cart-thumbnail img {
+    max-width: 75%;
+}

@@ -1,10 +1,56 @@
 <?php
 session_start();
+if (!empty($_SESSION['error'])) {
+    $error = $_SESSION['error'];
+    unset($_SESSION['error']);
+}
 
-
-
+$role = $_SESSION['role'] ?? 0;
+$user_id = $_SESSION['user_id'] ?? null;
 $id = $_GET['id'] ?? null;
+if (!$id) {
+    header('Location: /');
+    exit;
+}
+
+
+
+
+
+
 require('lib/db.php');
+$sql = 'SELECT * FROM products WHERE id = ?';
+$query = $pdo->prepare($sql);
+$query->execute([$id]);
+$product = $query->fetch(PDO::FETCH_OBJ);
+
+if (!$product) {
+    header('Location: nonfound.php');
+    exit;
+}
+$price = $product->price;
+
+if ($product->discount > 0) {
+    $price = $price - ($price / 100 * $product->discount);
+}
+
+if ($user_id) {
+    $stmt = $pdo->prepare("
+        SELECT product_id
+        FROM wishlist
+        WHERE user_id = :user_id
+    ");
+
+    $stmt->execute([
+        ':user_id' => $user_id
+    ]);
+
+    $wishlist = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} else {
+    $wishlist = [];
+}
+
+
 $sql = "
     SELECT 
         id,
@@ -56,27 +102,26 @@ foreach ($variants as $variant) {
 ?>
 
 
-<?php
-require('blocks/discountheader.php');
-require('blocks/nav.php');
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title><?= htmlspecialchars($product->name) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
     <link rel="stylesheet" href="style/reset.css">
     <link rel="stylesheet" href="style/product.css">
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 
 <body>
 
+    <?php
+    require('blocks/discountheader.php');
+    require('blocks/nav.php');
+    ?>
     <main>
         <section class="container pb-5" data-purpose="product-main-view">
             <div class="row g-4 g-lg-5">
@@ -98,55 +143,38 @@ require('blocks/nav.php');
                             }
                             ?>
                         </div>
-                        <div
-                            class="product-main-image bg-brand-gray rounded-4 overflow-hidden d-flex align-items-center justify-content-center p-3">
-                            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMlKdpaki1ivkOFfo9tlPSvv4ynB4NuZBQtSpuvMYRlOnM0tX7TFsDBE6UvKNt10kq96syl_RH1av0YWyiF0o9mT2RoWv2lu_cMtu-9Na1KOuV9y6l2ykpSadueILEx27pxzmzVR1tmy9PEjjWV6kKvyhEBYUVVwiBnZaeJdird5HCXRk0G46-lGfMa56StSeif0NU4gCfJPA4NTgQLUIubrTYFbJGKbAnuMjC7eE9wadIGwTtoeysMA"
-                                alt="ONE LIFE GRAPHIC T-SHIRT"
-                                class="main-image img-fluid object-contain product-main-img">
+                        <div class="product-main-image bg-brand-gray rounded-4 overflow-hidden d-flex align-items-center justify-content-center p-3">
+                            <img src="lib/api/private/upload/<?= $images[0]->image_url ?>"alt="ONE LIFE GRAPHIC T-SHIRT"class="main-image img-fluid object-contain product-main-img">
                         </div>
-
                     </div>
                 </div>
 
 
                 <div class="col-12 col-lg-6 d-flex flex-column justify-content-between">
                     <div>
-                        <?php
-                        $sql = 'SELECT * FROM products WHERE id = ?';
-                        $query = $pdo->prepare($sql);
-                        $query->execute([$id]);
-                        $product = $query->fetch(PDO::FETCH_OBJ);
-                        $price = $product->price;
-
-                        if ($product->discount > 0) {
-                            $price = $price - ($price / 100 * $product->discount);
-                        }
-                        echo '
-                            <h1 class="font-heading product-title text-black mb-3">' . $product->name . '</h1>
+                         <h1 class="font-heading product-title text-black mb-3"><?= htmlspecialchars($product->name) ?></h1>
                             <div class="d-flex align-items-center gap-2 mb-3">
-                            <i class="fa-solid fa-star"></i>
-                                <span class="small fw-medium text-black">' . $product->rate . '
+                                <i class="fa-solid fa-star"></i>
+                                <span class="small fw-medium text-black"><?= htmlspecialchars($product->rate) ?>
                             </div>
                             <div class="d-flex align-items-center gap-3 mb-3">
-                                <span class="font-heading product-price text-black">₽' . $price . '</span>' . ($product->discount > 0 ? '<span
-                                    class="font-heading product-price text-secondary text-decoration-line-through opacity-40">
-                                    ₽' . $product->price . '
-                                </span>
-                                ' : '') . '
-
-                                ' . ($product->discount > 0 ? '
-                                <span class="text-danger badge badge-discount rounded-pill"> ' . $product->discount .
-                            '%</span>
-                                ' : '') . '
+                                <span class="font-heading product-price text-black">₽<?= htmlspecialchars($price) ?></span>
+                                <span class="font-heading product-price text-secondary text-decoration-line-through opacity-40">₽<?= htmlspecialchars($product->price) ?></span>
+                                <span class="text-danger badge badge-discount rounded-pill"><?= htmlspecialchars($product->discount)?>%</span>
                             </div>
-                            <p class="text-secondary product-description mb-4">
-                                ' . $product->description . '
-                            </p>
-                        ';
-                        ?>
+                            <?php $isWishlist = in_array($id, $wishlist); ?>
+                            <form method="POST" action="/lib/api/publish/wishlist.php">
+                                <input type="hidden" name="product_id" value="<?= htmlspecialchars($id) ?>">
+                                <button name="action" value="<?= $isWishlist ? 'remove' : 'add' ?>" type="submit" style="background: none !important;" class="border-0 bg-transparent">
+                                    <i class="cursor-pointer bi <?= $isWishlist ? 'bi-heart-fill text-danger' : 'bi-heart text-secondary' ?>"></i>
+                                </button>
+                            </form>
 
+                            <p class="text-secondary product-description mb-4"><?= htmlspecialchars($product->description) ?></p>
+                             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                                <a class="text-danger" href="productedit.php?id=<?=$id?>">Изменить</a>
+                            <?php endif; ?> 
                         <hr class="text-secondary opacity-25 mb-4">
-
                         <div class="mb-4">
                             <label class="d-block text-secondary small fw-medium mb-2">Select Color</label>
                             <div id="colorList" class="d-flex gap-3 align-items-center flex-wrap">
@@ -159,11 +187,10 @@ require('blocks/nav.php');
                                         ">
                                     </button>
                                 <?php endforeach; ?>
+
                             </div>
                         </div>
-
                         <hr class="text-secondary opacity-25 mb-4">
-
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <label class="d-block text-secondary small fw-medium mb-0">Choose Size</label>
@@ -177,33 +204,35 @@ require('blocks/nav.php');
                                 <?php endforeach; ?>
                             </div>
                         </div>
-
                         <hr class="text-secondary opacity-25 mb-4">
+                            <?php if (count($sizes) == 0 || count($colors) == 0): ?>
+                                <span>Нет в наличии</span>
+                            <?php endif; ?>
+                            <?php if (count($sizes) !== 0 || count($colors) !== 0): ?>
+                            <div class="d-flex gap-3 align-items-center">
+                                <div class="quantity-control d-inline-flex align-items-center bg-brand-gray rounded-pill px-3 py-2">
+                                    <button id="increaseQuantity">+</button>
+                                    <span id="quantity" class="fw-bold px-3 small">1</span>
+                                    <button id="decreaseQuantity">-</button>
+                                </div>
 
-                        <div class="d-flex gap-3 align-items-center">
-                            <div
-                                class="quantity-control d-inline-flex align-items-center bg-brand-gray rounded-pill px-3 py-2">
-                                <button id="increaseQuantity">+</button>
-                                <span id="quantity" class="fw-bold px-3 small">
-                                    1
-                                </span>
-                                <button id="decreaseQuantity">-</button>
+                                <form method="POST" action="/lib/api/publish/addcart.php">
+                                    <input type="hidden" id="selectedid" name="product_id" value="<?= (int) $id ?>">
+                                    <input type="hidden" id="selectedVariantId" name="variant_id" value="">
+                                    <input type="hidden" id="selectedColor" name="color" value="">
+                                    <input type="hidden" id="selectedSize" name="size" value="">
+                                    <input type="hidden" id="selectedQuantity" name="quantity" value="1">
+                                    <button type="submit" id="addToCart" class="btn btn-dark flex-grow-1 rounded-pill py-3 fw-medium" disabled>
+                                        Select color and size
+                                    </button>
+                                </form>
                             </div>
-
-                            <form method="POST" action="/lib/api/publish/addcart.php">
-                                <input type="hidden" id="selectedid" name="product_id" value="<?= (int) $id ?>">
-                                <input type="hidden" id="selectedVariantId" name="variant_id" value="">
-                                <input type="hidden" id="selectedColor" name="color" value="">
-                                <input type="hidden" id="selectedSize" name="size" value="">
-                                <input type="hidden" id="selectedQuantity" name="quantity" value="1">
-                                <button type="submit" id="addToCart"
-                                    class="btn btn-dark flex-grow-1 rounded-pill py-3 fw-medium" disabled>
-                                    Select color and size
-                                </button>
-
-                            </form>
-
-                        </div>
+                            <?php endif; ?>
+                            <?php if (!empty($error)  && $error === 'Этот товар уже есть в корзине.'): ?>
+                                <div class="alert alert-danger">
+                                    <?= htmlspecialchars($error) ?>
+                                </div>
+                            <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -212,11 +241,8 @@ require('blocks/nav.php');
 
         <section class="container mt-4 mb-5" data-purpose="product-tabs">
             <ul class="nav nav-tabs-shop d-flex mb-4 border-bottom">
-                <li class="flex-fill text-center"> <button class="nav-link w-100" type="button">Информация о
-                        товаре</button>
-                </li>
-                <li class="flex-fill text-center"><button class="nav-link active w-100" type="button">Отзывы</button>
-                </li>
+                <li class="flex-fill text-center"> <button class="nav-link w-100" type="button">Информация о товаре</button></li>
+                <li class="flex-fill text-center"><button class="nav-link active w-100" type="button">Отзывы</button></li>
                 <li class="flex-fill text-center"><button class="nav-link w-100" type="button">FAQs</button></li>
             </ul>
 
@@ -231,21 +257,23 @@ require('blocks/nav.php');
                 <div class="d-flex align-items-baseline gap-2">
                     <h2 class="h4 fw-bold text-black m-0"> Всего отзывов </h2>
                     <span class="text-secondary small">(<?= count($reviews) ?>)</span>
+                    <?php if (!empty($error)  && $error === 'Нельзя написать более одиного отзыва одному товару.'): ?>
+                        <div class="alert alert-danger">
+                            <?= htmlspecialchars($error) ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
                     <div id="reviewModal" class="modal position-fixed top-0 start-0 w-100 h-100">
                         <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark modal-opacity">
                             <div class="modal-dialog modal-dialog-centered position-relative w-100 mx-3">
-                                <div
-                                    class="modal-content bg-black border border-secondary rounded shadow-lg overflow-hidden">
-                                    <form method="POST" action="/lib/api/publish/review.php"
-                                        class="p-4 p-md-5 d-flex flex-column gap-4">
+                                <div class="modal-content bg-black border border-secondary rounded shadow-lg overflow-hidden">
+                                    <form method="POST" action="/lib/api/publish/review.php" class="p-4 p-md-5 d-flex flex-column gap-4">
                                         <input type="hidden" name="product_id" value="<?= (int) $id ?>">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <h2 class="h3 text-white text-uppercase fw-bold mb-0">Ваш отзыв</h2>
-                                            <button onclick="closeReview()" type="button"
-                                                className="btn text-secondary"> X</button>
+                                            <button onclick="closeReview()" type="button"className="btn text-secondary"> X</button>
                                         </div>
                                         <label for="rating" class="color-white">Оценка</label>
                                         <select id="rating" name="rating" required>
@@ -256,15 +284,11 @@ require('blocks/nav.php');
                                             <option value="1">★☆☆☆☆</option>
                                         </select>
                                         <div class="d-flex flex-column gap-2">
-                                            <textarea id="review" name="review" placeholder="Напишите ваш отзыв..."
-                                                required></textarea>
+                                            <textarea id="review" name="review" placeholder="Напишите ваш отзыв..." required></textarea>
                                         </div>
-
                                         <div class="d-flex justify-content-end gap-3">
-                                            <button type="submit" class="btn btn-danger text-uppercase">Добавить
-                                                отзыв</button>
+                                            <button type="submit" class="btn btn-danger text-uppercase">Добавить отзыв</button>
                                         </div>
-
                                     </form>
                                 </div>
                             </div>
@@ -282,40 +306,25 @@ require('blocks/nav.php');
                 <?php foreach ($reviews as $review): ?>
                     <div class="col-12 col-md-6">
                         <div class="review-card h-100">
-
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-
-                                <div class="text-warning">
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-fill"></i>
-                                    <i class="bi bi-star-half"></i>
-                                </div>
-
-                                <button class="btn p-0 text-secondary border-0">
-                                    <i class="bi bi-three-dots"></i>
-                                </button>
-
+                            <div class="d-flex justify-content-between align-items-start mb-2">                           
                             </div>
-
                             <div class="d-flex align-items-center gap-1 mb-2">
-                                <span class="fw-bold text-black">
-                                    <?= htmlspecialchars($review->LastName) ?>
-                                </span>
-
-                                <i class="bi bi-check-circle-fill text-success small"></i>
+                                <span class="fw-bold text-black"><?= htmlspecialchars($review->LastName) ?></span>
                             </div>
 
-                            <p class="text-secondary small review-text mb-3">
-                                <?= htmlspecialchars($review->content) ?>
+                            <p class="text-secondary small review-text mb-3"> <?= htmlspecialchars($review->content) ?></p>
+                            <div class="text-secondary review-date fw-medium"><?= htmlspecialchars($review->CreatedAt) ?></div>
+                            <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $review->user_id): ?>
+                                <button style="background: none !important;" class="border-0 bg-transparent"> <i class="text-danger bi bi-trash-fill"></i></button>
+                            <?php endif; ?> 
 
-
-                            </p>
-                            <div class="text-secondary review-date fw-medium">
-                                <?= htmlspecialchars($review->CreatedAt) ?>
-
-                            </div>
+                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                            <form method="post" action="/lib/api/private/remove_review.php">
+                                <input type="hidden" name="review_id" value="  <?= htmlspecialchars($review->id) ?>">
+                                <input type="hidden" name="product_id" value="  <?= htmlspecialchars($review->product_id) ?>">
+                                <button style="background: none !important;" class="border-0 bg-transparent"> <i class="text-danger bi bi-trash-fill"></i></button>
+                            </form>
+                        <?php endif; ?> 
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -330,15 +339,17 @@ require('blocks/nav.php');
 
 
     <script>
+        <?php if (!empty($error)): ?>
+        
+        <?php endif; ?>
+
         const variants = <?= $variantsJson ?>;
         let selectedColor = null;
         let selectedSize = null;
         let quantity = 1;
 
         function getVariant(color, size) {
-
             return variants.find(variant => {
-
                 return (
                     variant.color === color &&
                     variant.size === size &&
@@ -350,7 +361,6 @@ require('blocks/nav.php');
         }
 
         function getAvailableSizes(color) {
-
             return variants
                 .filter(variant => {
 
@@ -365,10 +375,8 @@ require('blocks/nav.php');
         }
 
         function getAvailableColors(size) {
-
             return variants
                 .filter(variant => {
-
                     return (
                         variant.size === size &&
                         Number(variant.stock) > 0
@@ -380,346 +388,155 @@ require('blocks/nav.php');
         }
 
         function updateOptions() {
-
             let availableSizes = [];
-
             if (selectedColor) {
-
                 availableSizes = getAvailableSizes(selectedColor);
-
             } else {
-
                 availableSizes = variants
                     .filter(variant => Number(variant.stock) > 0)
                     .map(variant => variant.size);
 
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Какие цвета доступны?
-            |--------------------------------------------------------------------------
-            */
-
             let availableColors = [];
-
             if (selectedSize) {
-
                 availableColors = getAvailableColors(selectedSize);
-
             } else {
-
                 availableColors = variants
                     .filter(variant => Number(variant.stock) > 0)
                     .map(variant => variant.color);
 
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Убираем дубликаты
-            |--------------------------------------------------------------------------
-            */
-
             availableSizes = [...new Set(availableSizes)];
             availableColors = [...new Set(availableColors)];
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Обновляем цвета
-            |--------------------------------------------------------------------------
-            */
-
             colorButtons.forEach(button => {
-
                 const color = button.dataset.color;
-
                 const available = availableColors.includes(color);
-
                 button.disabled = !available;
-
                 button.classList.toggle(
                     'disabled',
                     !available
                 );
-
                 button.classList.toggle(
                     'active',
                     selectedColor === color
                 );
-
             });
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Обновляем размеры
-            |--------------------------------------------------------------------------
-            */
 
             sizeButtons.forEach(button => {
-
                 const size = button.dataset.size;
-
                 const available = availableSizes.includes(size);
-
                 button.disabled = !available;
-
-                button.classList.toggle(
-                    'disabled',
-                    !available
-                );
-
-                button.classList.toggle(
-                    'active',
-                    selectedSize === size
-                );
-
+                button.classList.toggle('disabled',!available);
+                button.classList.toggle('active',selectedSize === size);
             });
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Если выбранный цвет больше недоступен
-            |--------------------------------------------------------------------------
-            */
 
             if (
                 selectedColor &&
                 !availableColors.includes(selectedColor)
             ) {
-
                 selectedColor = null;
-
                 selectedColorInput.value = '';
-
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Если выбранный размер больше недоступен
-            |--------------------------------------------------------------------------
-            */
-
             if (
                 selectedSize &&
                 !availableSizes.includes(selectedSize)
             ) {
-
                 selectedSize = null;
-
                 selectedSizeInput.value = '';
-
             }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Проверяем конкретный вариант
-            |--------------------------------------------------------------------------
-            */
-
             const variant = getVariant(
                 selectedColor,
                 selectedSize
             );
-
-
             if (variant) {
-
                 selectedVariantId.value = variant.id;
-
-                selectedVariantInfo.textContent =
-                    `Stock: ${variant.stock}`;
-
+                selectedVariantInfo.textContent = `Stock: ${variant.stock}`;
                 addToCartButton.disabled = false;
-
-                addToCartButton.textContent =
-                    'Add to Cart';
+                addToCartButton.textContent ='Add to Cart';
 
             } else {
-
                 selectedVariantId.value = '';
-
                 selectedVariantInfo.textContent = '';
-
                 addToCartButton.disabled = true;
-
-
                 if (!selectedColor && !selectedSize) {
-
                     addToCartButton.textContent =
                         'Select color and size';
-
                 } else if (!selectedColor) {
-
                     addToCartButton.textContent =
                         'Select color';
-
                 } else if (!selectedSize) {
-
                     addToCartButton.textContent =
                         'Select size';
-
                 } else {
-
                     addToCartButton.textContent =
                         'Unavailable';
-
                 }
-
             }
-
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Выбор цвета
-        |--------------------------------------------------------------------------
-        */
-
         colorButtons.forEach(button => {
-
             button.addEventListener('click', function () {
-
-                if (this.disabled) {
-                    return;
-                }
-
-
+                if (this.disabled) {return;}
                 const color = this.dataset.color;
-
                 selectedColor = color;
-
                 selectedColorInput.value = color;
-
-
-                /*
-                | Если текущий размер нельзя купить
-                | с новым цветом — сбрасываем размер.
-                */
-
                 if (
                     selectedSize &&
                     !getVariant(selectedColor, selectedSize)
                 ) {
 
                     selectedSize = null;
-
                     selectedSizeInput.value = '';
-
                 }
-
-
                 updateOptions();
 
             });
 
         });
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Выбор размера
-        |--------------------------------------------------------------------------
-        */
-
         sizeButtons.forEach(button => {
-
             button.addEventListener('click', function () {
-
                 if (this.disabled) {
                     return;
                 }
-
-
                 const size = this.dataset.size;
-
                 selectedSize = size;
-
                 selectedSizeInput.value = size;
-
-
-                /*
-                | Если текущий цвет нельзя купить
-                | с новым размером — сбрасываем цвет.
-                */
-
                 if (
                     selectedColor &&
                     !getVariant(selectedColor, selectedSize)
                 ) {
-
                     selectedColor = null;
-
                     selectedColorInput.value = '';
-
                 }
-
-
                 updateOptions();
-
             });
 
         });
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Quantity
-        |--------------------------------------------------------------------------
-        */
-
         decreaseQuantity.addEventListener('click', function () {
-
             if (quantity > 1) {
-
                 quantity--;
-
                 quantityElement.textContent = quantity;
                 selectedQuantityInput.value = quantity
             }
 
         });
-
 
         increaseQuantity.addEventListener('click', function () {
             const variant = getVariant(
                 selectedColor,
                 selectedSize
-
             );
-
-            if (!variant) {
-                return;
-            }
-
-
+            if (!variant) {return;}
             const stock = Number(variant.stock);
-
-
             if (quantity < stock) {
-
                 quantity++;
-
                 quantityElement.textContent = quantity;
                 selectedQuantityInput.value = quantity
-
             }
 
         });
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Add to cart
-        |--------------------------------------------------------------------------
-        */
 
         addToCartButton.addEventListener('click', function () {
             console.log(selectedQuantityInput)
@@ -728,21 +545,7 @@ require('blocks/nav.php');
                 selectedSize
             );
 
-
-            if (!variant) {
-                return;
-            }
-
-
-
-            /*
-            | Здесь можно отправить данные в PHP через fetch()
-            |
-            | variant.id
-            | quantity
-            |
-            */
-
+            if (!variant) {return;}
             console.log({
                 product_id: <?= (int) $id ?>,
                 variant_id: variant.id,
@@ -752,14 +555,6 @@ require('blocks/nav.php');
             });
 
         });
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Первоначальное состояние
-        |--------------------------------------------------------------------------
-        */
-
         updateOptions();
 
     </script>

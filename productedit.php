@@ -25,7 +25,7 @@ if (!$role || $role['role'] !== 'admin') {
 
 $id = $_GET['id'] ?? null;
 if (!$id) {
-    header('Location: products.php');
+     header('Location: products.php');
     exit;
 }
 

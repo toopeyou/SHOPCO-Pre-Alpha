@@ -41,7 +41,7 @@ try {
 
     $_SESSION['user_id'] = (int) $user['id'];
     $_SESSION['role'] = $user['role'];
-    $_SESSION['role'] = $user['name'];
+    $_SESSION['name'] = $user['name'];
 
     header('Location: /');
     exit;

@@ -30,7 +30,12 @@ try {
     exit;
 
 } catch (Exception $e) {
-    echo $e;
+    if ($e->errorInfo[0] === '23000' && $e->errorInfo[1] == 1062) {
+    $_SESSION['error'] = 'Этот товар уже есть в корзине.';
+        header("Location:  ../../../product.php?id={$product_id}");
+    } else {
+        throw $e;
+    }
 }
 
 

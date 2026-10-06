@@ -1,0 +1,252 @@
+    :root {
+      --bs-body-bg: #fff;
+      --bs-body-color: #111;
+      --soft: #f7f7f7;
+      --border: #e9e9e9;
+    }
+
+    body {
+      background: #fff;
+      color: #111;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .account-page {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .account-title {
+      font-size: clamp(32px, 5vw, 58px);
+      font-weight: 800;
+      letter-spacing: -2px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -.5px;
+    }
+
+    .soft-card {
+      background: var(--soft);
+      border: 0;
+      border-radius: 24px;
+    }
+
+    .order-card {
+      border: 1px solid #eee;
+      border-radius: 24px;
+      background: #fff;
+      transition: .2s ease;
+    }
+
+    .order-card:hover {
+      box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.07);
+    }
+
+    .avatar {
+      width: 96px;
+      height: 96px;
+      object-fit: cover;
+    }
+
+    .vip-badge {
+      position: absolute;
+      bottom: 0;
+      right: -5px;
+      background: #111;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 50rem;
+    }
+
+    .account-nav .nav-link {
+      color: #333;
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .account-nav .nav-link:hover {
+      background: #e9e9e9;
+      color: #111;
+    }
+
+    .account-nav .nav-link.active {
+      background: #111;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .account-nav .nav-link.active .badge {
+      background: #fff !important;
+      color: #111 !important;
+    }
+
+    .loyalty-card {
+      background: linear-gradient(135deg, #202020, #000);
+      color: #fff;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .loyalty-progress {
+      height: 6px;
+      background: rgba(255,255,255,.2);
+    }
+
+    .loyalty-progress .progress-bar {
+      background: #fff;
+    }
+
+    .status-pill {
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 50rem;
+      padding: 7px 12px;
+    }
+
+    .tracking {
+      background: #f7f7f7;
+      border-radius: 18px;
+      padding: 20px 15px;
+    }
+
+    .tracking-line {
+      height: 4px;
+      background: #ddd;
+      position: absolute;
+      top: 13px;
+      left: 8%;
+      right: 8%;
+      z-index: 0;
+    }
+
+    .tracking-line-active {
+      height: 4px;
+      background: #111;
+      position: absolute;
+      top: 13px;
+      left: 8%;
+      width: 63%;
+      z-index: 1;
+    }
+
+    .tracking-step {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+    }
+
+    .tracking-icon {
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #111;
+      color: #fff;
+      font-size: 11px;
+    }
+
+    .tracking-step.pending .tracking-icon {
+      background: #ddd;
+      color: #999;
+    }
+
+    .product-thumb {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 16px;
+      background: #f5f5f5;
+    }
+
+    .recent-product {
+      background: #f7f7f7;
+      border-radius: 18px;
+      padding: 12px;
+      height: 100%;
+      transition: .2s ease;
+    }
+
+    .recent-product:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 .5rem 1rem rgba(0,0,0,.06);
+    }
+
+    .recent-product img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 14px;
+    }
+
+    .review-card {
+      border: 1px solid #eee;
+      border-radius: 20px;
+      padding: 20px;
+      height: 100%;
+      background: #fff;
+    }
+
+    .review-stars {
+      color: #f59e0b;
+      letter-spacing: 1px;
+    }
+
+    .review-product {
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .payment-card {
+      border-radius: 16px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .mastercard {
+      width: 48px;
+      height: 32px;
+      border-radius: 8px;
+      background: #111;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    @media (max-width: 767.98px) {
+      .account-page {
+        padding: 25px 15px;
+      }
+
+      .order-card {
+        border-radius: 18px;
+      }
+
+      .product-thumb {
+        width: 64px;
+        height: 64px;
+      }
+
+      .tracking-line,
+      .tracking-line-active {
+        left: 10%;
+        right: 10%;
+      }
+    }

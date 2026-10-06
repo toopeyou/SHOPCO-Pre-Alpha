@@ -174,7 +174,7 @@ session_start();
                             <a href="product.php?id=' . $product->id . '" class="product-card">
                                 <div
                                     class="product-image bg-product rounded-20 overflow-hidden mb-3 d-flex align-items-center justify-content-center p-4">
-                                    <img src="lib/upload/' . $product->image . '"
+                                    <img src="lib/api/private/upload/' . $product->image . '"
                                         alt="Sleeve Striped T-shirt" class="w-100 h-100 object-contain mix-blend-multiply">
                                 </div>
                                 <h3 class="fw-bold fs-6 text-black mb-1 text-truncate">' . $product->name . '</h3>

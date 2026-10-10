@@ -1,10 +1,11 @@
 <?php
 session_start();
-if (!empty($_SESSION['error'])) {
-    $error = $_SESSION['error'];
-    unset($_SESSION['error']);
-}
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}   
+require('lib/db.php');
 
+if (!empty($_SESSION['error'])) {$error = $_SESSION['error']; unset($_SESSION['error']);}
 $role = $_SESSION['role'] ?? 0;
 $user_id = $_SESSION['user_id'] ?? null;
 $id = $_GET['id'] ?? null;
@@ -13,44 +14,26 @@ if (!$id) {
     exit;
 }
 
-
-
-
-
-
-require('lib/db.php');
 $sql = 'SELECT * FROM products WHERE id = ?';
-$query = $pdo->prepare($sql);
-$query->execute([$id]);
-$product = $query->fetch(PDO::FETCH_OBJ);
-
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$id]);
+$product = $stmt->fetch(PDO::FETCH_OBJ);
 if (!$product) {
     header('Location: nonfound.php');
     exit;
 }
 $price = $product->price;
 
-if ($product->discount > 0) {
-    $price = $price - ($price / 100 * $product->discount);
-}
-
+if ($product->discount > 0) {$price = $price - ($price / 100 * $product->discount);}
 if ($user_id) {
-    $stmt = $pdo->prepare("
-        SELECT product_id
-        FROM wishlist
-        WHERE user_id = :user_id
-    ");
-
+    $stmt = $pdo->prepare("SELECT product_id FROM wishlist WHERE user_id = :user_id ");
     $stmt->execute([
         ':user_id' => $user_id
     ]);
-
     $wishlist = $stmt->fetchAll(PDO::FETCH_COLUMN);
 } else {
     $wishlist = [];
 }
-
-
 $sql = "
     SELECT 
         id,
@@ -65,23 +48,18 @@ $sql = "
     ORDER BY color, size
 ";
 
-$query = $pdo->prepare($sql);
-$query->execute([$id]);
-
-$variants = $query->fetchAll(PDO::FETCH_ASSOC);
-
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$id]);
+$variants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $variantsJson = json_encode(
     $variants,
     JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
 );
 
-
 $colors = [];
-
 foreach ($variants as $variant) {
     $color = $variant['color'];
-
     if (!isset($colors[$color])) {
         $colors[$color] = [
             'color' => $color,
@@ -91,10 +69,8 @@ foreach ($variants as $variant) {
 }
 
 $sizes = [];
-
 foreach ($variants as $variant) {
     $size = $variant['size'];
-
     if (!in_array($size, $sizes, true)) {
         $sizes[] = $size;
     }
@@ -103,24 +79,20 @@ foreach ($variants as $variant) {
 
 
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($product->name) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
     <link rel="stylesheet" href="style/reset.css">
     <link rel="stylesheet" href="style/product.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
-
 <body>
-
     <?php
-    require('blocks/discountheader.php');
-    require('blocks/nav.php');
+        require('blocks/discountheader.php');
+        require('blocks/nav.php');
     ?>
     <main>
         <section class="container pb-5" data-purpose="product-main-view">
@@ -144,17 +116,15 @@ foreach ($variants as $variant) {
                             ?>
                         </div>
                         <div class="product-main-image bg-brand-gray rounded-4 overflow-hidden d-flex align-items-center justify-content-center p-3">
-                            <img src="lib/api/private/upload/<?= $images[0]->image_url ?>"alt="ONE LIFE GRAPHIC T-SHIRT"class="main-image img-fluid object-contain product-main-img">
+                            <img src="lib/api/private/upload/<?= $images[0]->image_url ?>" alt="ONE LIFE GRAPHIC T-SHIRT" class="main-image img-fluid object-contain product-main-img">
                         </div>
                     </div>
                 </div>
-
-
                 <div class="col-12 col-lg-6 d-flex flex-column justify-content-between">
                     <div>
                          <h1 class="font-heading product-title text-black mb-3"><?= htmlspecialchars($product->name) ?></h1>
-                            <div class="d-flex align-items-center gap-2 mb-3">
-                                <i class="fa-solid fa-star"></i>
+                            <div class="d-flex align-items-center gap-2 mb-3">  
+                                <i class="text-warning bi bi-star-fill"></i>
                                 <span class="small fw-medium text-black"><?= htmlspecialchars($product->rate) ?>
                             </div>
                             <div class="d-flex align-items-center gap-3 mb-3">
@@ -164,6 +134,7 @@ foreach ($variants as $variant) {
                             </div>
                             <?php $isWishlist = in_array($id, $wishlist); ?>
                             <form method="POST" action="/lib/api/publish/wishlist.php">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                 <input type="hidden" name="product_id" value="<?= htmlspecialchars($id) ?>">
                                 <button name="action" value="<?= $isWishlist ? 'remove' : 'add' ?>" type="submit" style="background: none !important;" class="border-0 bg-transparent">
                                     <i class="cursor-pointer bi <?= $isWishlist ? 'bi-heart-fill text-danger' : 'bi-heart text-secondary' ?>"></i>
@@ -187,7 +158,6 @@ foreach ($variants as $variant) {
                                         ">
                                     </button>
                                 <?php endforeach; ?>
-
                             </div>
                         </div>
                         <hr class="text-secondary opacity-25 mb-4">
@@ -217,6 +187,7 @@ foreach ($variants as $variant) {
                                 </div>
 
                                 <form method="POST" action="/lib/api/publish/addcart.php">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                     <input type="hidden" id="selectedid" name="product_id" value="<?= (int) $id ?>">
                                     <input type="hidden" id="selectedVariantId" name="variant_id" value="">
                                     <input type="hidden" id="selectedColor" name="color" value="">
@@ -241,7 +212,7 @@ foreach ($variants as $variant) {
 
         <section class="container mt-4 mb-5" data-purpose="product-tabs">
             <ul class="nav nav-tabs-shop d-flex mb-4 border-bottom">
-                <li class="flex-fill text-center"> <button class="nav-link w-100" type="button">Информация о товаре</button></li>
+                <li class="flex-fill text-center"><button class="nav-link w-100" type="button">Информация о товаре</button></li>
                 <li class="flex-fill text-center"><button class="nav-link active w-100" type="button">Отзывы</button></li>
                 <li class="flex-fill text-center"><button class="nav-link w-100" type="button">FAQs</button></li>
             </ul>
@@ -258,48 +229,14 @@ foreach ($variants as $variant) {
                     <h2 class="h4 fw-bold text-black m-0"> Всего отзывов </h2>
                     <span class="text-secondary small">(<?= count($reviews) ?>)</span>
                     <?php if (!empty($error)  && $error === 'Нельзя написать более одиного отзыва одному товару.'): ?>
-                        <div class="alert alert-danger">
-                            <?= htmlspecialchars($error) ?>
-                        </div>
+                        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
                     <?php endif; ?>
                 </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <div id="reviewModal" class="modal position-fixed top-0 start-0 w-100 h-100">
-                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark modal-opacity">
-                            <div class="modal-dialog modal-dialog-centered position-relative w-100 mx-3">
-                                <div class="modal-content bg-black border border-secondary rounded shadow-lg overflow-hidden">
-                                    <form method="POST" action="/lib/api/publish/review.php" class="p-4 p-md-5 d-flex flex-column gap-4">
-                                        <input type="hidden" name="product_id" value="<?= (int) $id ?>">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <h2 class="h3 text-white text-uppercase fw-bold mb-0">Ваш отзыв</h2>
-                                            <button onclick="closeReview()" type="button"className="btn text-secondary"> X</button>
-                                        </div>
-                                        <label for="rating" class="color-white">Оценка</label>
-                                        <select id="rating" name="rating" required>
-                                            <option value="5">★★★★★</option>
-                                            <option value="4">★★★★☆</option>
-                                            <option value="3">★★★☆☆</option>
-                                            <option value="2">★★☆☆☆</option>
-                                            <option value="1">★☆☆☆☆</option>
-                                        </select>
-                                        <div class="d-flex flex-column gap-2">
-                                            <textarea id="review" name="review" placeholder="Напишите ваш отзыв..." required></textarea>
-                                        </div>
-                                        <div class="d-flex justify-content-end gap-3">
-                                            <button type="submit" class="btn btn-danger text-uppercase">Добавить отзыв</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <?php
                     if (isset($_SESSION['user_id'])) {
                         echo '<button onclick="openReview()" type="button" class="btn btn-dark rounded-pill px-4 py-2 small fw-medium">Написать отзыв</button>';
                     }
                     ?>
-
                 </div>
             </div>
             <div class="row g-4 mb-5">
@@ -311,82 +248,40 @@ foreach ($variants as $variant) {
                             <div class="d-flex align-items-center gap-1 mb-2">
                                 <span class="fw-bold text-black"><?= htmlspecialchars($review->LastName) ?></span>
                             </div>
-
                             <p class="text-secondary small review-text mb-3"> <?= htmlspecialchars($review->content) ?></p>
                             <div class="text-secondary review-date fw-medium"><?= htmlspecialchars($review->CreatedAt) ?></div>
                             <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $review->user_id): ?>
-                                <button style="background: none !important;" class="border-0 bg-transparent"> <i class="text-danger bi bi-trash-fill"></i></button>
-                            <?php endif; ?> 
-
-                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                            <form method="post" action="/lib/api/private/remove_review.php">
+                            <form method="post" action="/lib/api/publish/review.php">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                 <input type="hidden" name="review_id" value="  <?= htmlspecialchars($review->id) ?>">
                                 <input type="hidden" name="product_id" value="  <?= htmlspecialchars($review->product_id) ?>">
-                                <button style="background: none !important;" class="border-0 bg-transparent"> <i class="text-danger bi bi-trash-fill"></i></button>
+                                <button name="action" value="remove" style="background: none !important;" class="border-0 bg-transparent"><i class="text-danger bi bi-trash-fill"></i></button>
+                            </form>
+                            <?php endif; ?> 
+                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                            <form method="post" action="/lib/api/publish/remove_review.php">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                                <input type="hidden" name="review_id" value="  <?= htmlspecialchars($review->id) ?>">
+                                <input type="hidden" name="product_id" value="  <?= htmlspecialchars($review->product_id) ?>">
+                                <button name="action" value="remove" style="background: none !important;" class="border-0 bg-transparent"><i class="text-danger bi bi-trash-fill"></i></button>
                             </form>
                         <?php endif; ?> 
                         </div>
                     </div>
                 <?php endforeach; ?>
-
             </div>
-
         </section>
-
-
     </main>
+    <?php require('blocks/modal/productimages.php'); ?>   
+    <?php
+        $_SESSION['csrf_token'];
+        $product_id = (int) $id;
+        require('blocks/modal/review.php');
+    ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/script/product.js"></script>
-
-
     <script>
-        <?php if (!empty($error)): ?>
-        
-        <?php endif; ?>
-
         const variants = <?= $variantsJson ?>;
-        let selectedColor = null;
-        let selectedSize = null;
-        let quantity = 1;
-
-        function getVariant(color, size) {
-            return variants.find(variant => {
-                return (
-                    variant.color === color &&
-                    variant.size === size &&
-                    Number(variant.stock) > 0
-                );
-
-            });
-
-        }
-
-        function getAvailableSizes(color) {
-            return variants
-                .filter(variant => {
-
-                    return (
-                        variant.color === color &&
-                        Number(variant.stock) > 0
-                    );
-
-                })
-                .map(variant => variant.size);
-
-        }
-
-        function getAvailableColors(size) {
-            return variants
-                .filter(variant => {
-                    return (
-                        variant.size === size &&
-                        Number(variant.stock) > 0
-                    );
-
-                })
-                .map(variant => variant.color);
-
-        }
-
         function updateOptions() {
             let availableSizes = [];
             if (selectedColor) {
@@ -395,7 +290,6 @@ foreach ($variants as $variant) {
                 availableSizes = variants
                     .filter(variant => Number(variant.stock) > 0)
                     .map(variant => variant.size);
-
             }
             let availableColors = [];
             if (selectedSize) {
@@ -493,7 +387,6 @@ foreach ($variants as $variant) {
             });
 
         });
-
         sizeButtons.forEach(button => {
             button.addEventListener('click', function () {
                 if (this.disabled) {
@@ -513,7 +406,6 @@ foreach ($variants as $variant) {
             });
 
         });
-
         decreaseQuantity.addEventListener('click', function () {
             if (quantity > 1) {
                 quantity--;
@@ -522,7 +414,6 @@ foreach ($variants as $variant) {
             }
 
         });
-
         increaseQuantity.addEventListener('click', function () {
             const variant = getVariant(
                 selectedColor,
@@ -544,19 +435,9 @@ foreach ($variants as $variant) {
                 selectedColor,
                 selectedSize
             );
-
             if (!variant) {return;}
-            console.log({
-                product_id: <?= (int) $id ?>,
-                variant_id: variant.id,
-                color: selectedColor,
-                size: selectedSize,
-                quantity: quantity
-            });
-
         });
         updateOptions();
-
     </script>
 
 

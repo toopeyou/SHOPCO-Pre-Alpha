@@ -23,8 +23,6 @@ $floor = trim($_POST['floor'] ?? '');
 $city = trim($_POST['city'] ?? '');
 $postcode = trim($_POST['postcode'] ?? '');
 $comment = trim($_POST['comment'] ?? '');
-$payment = trim($_POST['payment'] ?? '');
-
 $isDefault = isset($_POST['is_default']) ? 1 : 0;
 
 if (
@@ -81,11 +79,6 @@ $stmt->execute([
     $isDefault
 ]);
 
-if (!$payment) {
-    header('Location: ../../../../userpage.php');
-    exit;
-}else {
     header('Location: ../../../../payment.php');
     exit;
-}
 

@@ -23,6 +23,7 @@ $review_id = (int) ($_POST['review_id'] ?? 0);
 $product_id = (int) ($_POST['product_id'] ?? 0);
 
 try {
+
     $stmt = $pdo->prepare("DELETE FROM reviews WHERE id = :id");
     $stmt->execute(['id' => $review_id]);
     header("Location:  ../../../product.php?id={$product_id}");

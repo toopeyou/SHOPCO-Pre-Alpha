@@ -9,13 +9,10 @@ $translations = [
     'delivered' => 'В Доставке',
     'cancel' => 'Отменен',
   ];
-
 $stmt = $pdo->prepare("SELECT name, lastname, email,phone_number FROM users WHERE id = ? ");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
 $userId = $_SESSION['user_id'];
-
 $sql = "
     SELECT
         r.id,
@@ -27,7 +24,7 @@ $sql = "
         pi.image_url AS product_image
     FROM reviews r
 
-    LEFT JOIN Users u
+    LEFT JOIN users u
         ON u.id = r.user_id
 
     LEFT JOIN products p
@@ -193,42 +190,18 @@ if (!$user) {
               <span><i class="bi bi-bag-check me-3"></i>Мои заказы</span>
               <span class="badge rounded-pill"><?= count($orders)?></span>
             </a>
-
-            <a href="#profile" class="nav-link"><i class="bi bi-person me-3 text-secondary"></i>
-              Персональные данные
-            </a>
-
             <a href="#setting-address" class="nav-link d-flex justify-content-between">
               <span><i class="bi bi-geo-alt me-3 text-secondary"></i>Адреса доставки</span><small class="text-secondary">2 адреса</small>
             </a>
-
-            <a href="#payments" class="nav-link d-flex justify-content-between">
-              <span>
-                <i class="bi bi-credit-card me-3 text-secondary"></i>
-                Способы оплаты
-              </span>
-              <small class="text-secondary">•••• 4242</small>
-            </a>
-
             <a href="#myreviews" class="nav-link d-flex justify-content-between">
-              <span>
-                <i class="bi bi-heart me-3 text-secondary"></i>
-                Избранное
-              </span>
-              <span class="badge bg-secondary-subtle text-dark rounded-pill">
-                6
-              </span>
+              <span><i class="bi bi-heart me-3 text-secondary"></i>Избранное</span>
+              <span class="badge bg-secondary-subtle text-dark rounded-pill"></span>
             </a>
-
             <a href="#myreviews" class="nav-link d-flex justify-content-between">
               <span><i class="bi bi-bell me-3 text-secondary"></i>Мои отзывыaa  </span>
             </a>
-
             <hr>
-            <a href="lib/api/publish/logout.php" class="nav-link text-danger text-start border-0 bg-transparent">
-              <i class="bi bi-box-arrow-right me-3"></i>
-              Выйти из аккаунта
-            </a>
+            <a href="lib/api/publish/logout.php" class="nav-link text-danger text-start border-0 bg-transparent"><i class="bi bi-box-arrow-right me-3"></i>Выйти из аккаунта</a>
           </nav>
 
         </div>
@@ -360,23 +333,21 @@ if (!$user) {
                   </div>                  
                   <?php endif; ?>
                   <?php if (!$address): ?> 
-                 
+                                        <button type="button" class="btn btn-secondary-subtle rounded-circle d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal"data-bs-target="#addAddressModal">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>Добавить адрес</span>
+                    </button>
+             
                   <?php endif; ?>
-
-                    <?php
-                    $checkout = false;
-                    require('blocks/modal/addadress.php');
-                    ?>
-
+                  <?php
+                  $checkout = false;
+                  require('blocks/modal/addaddress.php');
+                  ?>
               </div>
             </div>
           </div>
         </section>
-
-
-
         <section class="mb-5" id="reviews">
-
           <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
               <h2 class="section-title mb-1">Мои отзывы</h2>

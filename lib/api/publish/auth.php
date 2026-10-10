@@ -1,26 +1,35 @@
 <?php
 
 declare(strict_types=1);
-
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
     'domain' => '',
-    'secure' => !empty($_SERVER['HTTPS']), // true при HTTPS
+    'secure' => true,
     'httponly' => true,
     'samesite' => 'Lax'
 ]);
-
 session_start();
 
+if (
+    empty($_SESSION['csrf_token']) ||
+    empty($_POST['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
+    $_SESSION['message'] = 'Недействительный запрос. Попробуйте ещё раз.';
+    header('Location: ../../../signin.php');
+    exit;
+}
+
 require_once('../../db.php');
+
 
 $email = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '') {
     $_SESSION['message'] = 'Введите корректную почту и пароль.';
-    header('Location: ../signin.php');
+    header('Location: ../../../signin.php');
     exit;
 }
 
@@ -33,7 +42,8 @@ try {
 
     if (!$user || !password_verify($password, $user['password'])) {
         $_SESSION['message'] = 'Неверная почта или пароль.';
-        header('Location: ../singin.php');
+        header('Location: ../../../signin.php');
+
         exit;
     }
 
@@ -48,8 +58,7 @@ try {
 
 } catch (PDOException $e) {
     error_log($e->getMessage());
-
     $_SESSION['message'] = 'Ошибка сервера.';
-    header('Location: ../signin.php');
+    header('Location: ../../../signin.php');
     exit;
 }

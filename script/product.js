@@ -1,9 +1,10 @@
 let images = document.querySelectorAll('.product_images');
+let ratestart = document.querySelectorAll('.rate-star');
 let mainimage = document.querySelector('.main-image');
+let modalPhoto = document.getElementById('modalPhoto');
 
 if (images.length > 1) {
     mainimage.src = images[0].src
-
 }
 
 images.forEach(image => {
@@ -11,16 +12,36 @@ images.forEach(image => {
         mainimage.src = this.src
     };
 });
-
-
+mainimage.onclick = function () {
+    modalPhoto.src = mainimage.src
+    const modalElement = document.getElementById('photoModal');
+    if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+}
+mainimage.onclick = function () {
+    modalPhoto.src = mainimage.src
+    const modalElement = document.getElementById('photoModal');
+    if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+}
 
  function openReview() {
-    document.getElementById('reviewModal').style.display = 'flex';
+    const modalElement = document.getElementById('reviewModal');
+    if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
 }
+ratestart.forEach(item => {
+    item.onclick = function(){
+        document.querySelector('.rating-form').value = this.value
+    };
+});
 
-function closeReview() {
-    document.getElementById('reviewModal').style.display = 'none';
-}
 const colorButtons = document.querySelectorAll('.color-swatch');
 const sizeButtons = document.querySelectorAll('.btn-size');
 
@@ -39,3 +60,39 @@ const decreaseQuantity = document.getElementById('decreaseQuantity');
 const increaseQuantity = document.getElementById('increaseQuantity');
 
 
+let selectedColor = null;
+let selectedSize = null;
+let quantity = 1;
+function getVariant(color, size) {
+    return variants.find(variant => {
+        return (
+            variant.color === color &&
+            variant.size === size &&
+            Number(variant.stock) > 0
+        );
+
+    });
+
+}  function getAvailableSizes(color) {
+    return variants
+        .filter(variant => {
+            return (
+                variant.color === color &&
+                Number(variant.stock) > 0
+            );
+
+        })
+        .map(variant => variant.size);
+}
+
+function getAvailableColors(size) {
+    return variants
+        .filter(variant => {
+            return (
+                variant.size === size &&
+                Number(variant.stock) > 0
+            );
+
+        })
+        .map(variant => variant.color);
+}

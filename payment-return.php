@@ -32,7 +32,7 @@ if ($payment->getStatus() === 'succeeded') {
     $stmt->execute([$orderId]);
     $stmt = $pdo->prepare( "UPDATE payments SET status = 'paid' WHERE order_id = ?");
     $stmt->execute([$orderId]);   
-    $stmt = $pdo->prepare( "UPDATE shipments SET status = 'shipped' WHERE order_id = ?");
+    $stmt = $pdo->prepare( "UPDATE shipments SET status = 'delivered' WHERE order_id = ?");
     $stmt->execute([$orderId]);
     $stmt = $pdo->prepare(
         "SELECT variant_id, quantity FROM order_items WHERE order_id = ?"

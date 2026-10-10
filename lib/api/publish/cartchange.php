@@ -1,5 +1,15 @@
 <?php
 session_start();
+if (
+    empty($_POST['csrf_token']) ||
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
+    http_response_code(403);
+    exit('Неверный CSRF-токен');
+}
+
+
 require_once('../../db.php');
 $quantity = (int) ($_POST['quantity'] ?? 0);
 $variant_id = (int) ($_POST['variant_id'] ?? 0);
@@ -33,24 +43,18 @@ if ($action === 'add') {
             exit;
         }else {
             $stmt = $pdo->prepare(
-            "UPDATE cart_items 
-            SET quantity = quantity + 1 
-            WHERE user_id = ? AND variant_id = ?"
+            "UPDATE cart_items  SET quantity = quantity + 1  WHERE user_id = ? AND variant_id = ?"
         );
-
         $stmt->execute([
                 $userId,
                 $variant_id
             ]);
-
-            header("Location:  ../../../cart.php");
-
+        header("Location:  ../../../cart.php");
         }
     } catch (\Throwable $th) {
 
     }
 }
-
 
 if ($action === 'remove') {
     try {
@@ -59,18 +63,13 @@ if ($action === 'remove') {
             exit;
         }else {
             $stmt = $pdo->prepare(
-            "UPDATE cart_items 
-            SET quantity = quantity - 1
-            WHERE user_id = ? AND variant_id = ?"
+            "UPDATE cart_items  SET quantity = quantity - 1  WHERE user_id = ? AND variant_id = ?"
         );
-
         $stmt->execute([
                 $userId,
                 $variant_id
             ]);
-
-            header("Location:  ../../../cart.php");
-
+        header("Location:  ../../../cart.php");
         }
     } catch (\Throwable $th) {
 

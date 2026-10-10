@@ -99,6 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     if ($_POST['action'] === 'add') {
+        
+        $sql = 'SELECT * FROM product_images WHERE product_id = ? AND is_main = 1';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$product_id]);
+        $productmain = $stmt->fetch(PDO::FETCH_ASSOC);
+        $setmain = 0;
+        if (!$productmain) {
+            $setmain = 1;
+        };
         try {
             if (!isset($_FILES['photo'])) {
                 die('Выберите фото');
@@ -127,11 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     VALUES (?, ?, ?)
                 ";
                 $imageStmt = $pdo->prepare($imageSql);
-
                 $imageStmt->execute([
                     $product_id,
                     $fileName,
-                    $is_main
+                    $setmain
                 ]);
                 header("Location: ../../../productedit.php?id={$product_id}&success=1");
             } else {

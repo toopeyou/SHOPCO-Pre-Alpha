@@ -3,22 +3,27 @@ declare(strict_types=1);
 
 session_start();
 
-require_once('../../db.php');
 
+if (
+    empty($_POST['csrf_token']) ||
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
+    http_response_code(403);
+    exit('Неверный CSRF-токен');
+}
+
+require_once('../../db.php');
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     exit('Необходимо авторизоваться');
 }
-
 $userId = (int) $_SESSION['user_id'];
 
 $sql = 'SELECT role FROM users WHERE id = ? LIMIT 1';
-
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$userId]);
-
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
 if (!$user || $user['role'] !== 'admin') {
     http_response_code(403);
     exit('Доступ запрещён');
@@ -28,10 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../index.php');
     exit;
 }
-
 $product_id = (int) ($_POST['productid'] ?? $_POST['product_id'] ?? 0);
 $action_type = $_POST['action_type'] ?? 'all';
-
 function hexToColorName(string $hex): ?string
 {
     static $cache = [];
@@ -40,7 +43,6 @@ function hexToColorName(string $hex): ?string
         return null;
     if (isset($cache[$hex]))
         return $cache[$hex];
-
     $url = 'https://api.color.pizza/v1/' . $hex;
     $context = stream_context_create([
         'http' => [

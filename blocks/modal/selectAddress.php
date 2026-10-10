@@ -5,8 +5,6 @@ require('lib/db.php');
 if (!isset($_SESSION['user_id'])) {header('Location: singup.php'); exit('Необходимо авторизоваться');}
 $userId = (int) $_SESSION['user_id'];
 
-
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_address'])) {
 
     $addressId = (int) $_POST['delivery_address'];

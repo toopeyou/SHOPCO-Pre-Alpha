@@ -1,6 +1,14 @@
 <?php
 
 session_start();
+if (
+    empty($_POST['csrf_token']) ||
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
+    http_response_code(403);
+    exit('Неверный CSRF-токен');
+}
 
 require_once __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/lib/db.php';
@@ -16,11 +24,13 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = (int) $_SESSION['user_id'];
 
-
 $sql = "
     SELECT
+        ci.user_id,
         ci.variant_id,
         ci.quantity,
+
+        u.email AS user_email,
 
         pv.product_id,
         pv.color,
@@ -40,6 +50,9 @@ $sql = "
 
     FROM cart_items AS ci
 
+    INNER JOIN users AS u
+        ON u.id = ci.user_id
+
     INNER JOIN product_variants AS pv
         ON pv.id = ci.variant_id
 
@@ -51,9 +64,7 @@ $sql = "
 
 $query = $pdo->prepare($sql);
 $query->execute([$userId]);
-
 $cartItems = $query->fetchAll(PDO::FETCH_OBJ);
-
 
 if (!$cartItems) {
     http_response_code(400);
@@ -62,7 +73,6 @@ if (!$cartItems) {
 
 
 $finalPrice = 0;
-
 foreach ($cartItems as $item) {
 
     $price = (float) $item->price;
@@ -101,11 +111,87 @@ if ($finalPrice <= 0) {
     exit('Некорректная сумма заказа');
 }
 
+$action = ($_POST['buy'] ?? null);
 
 
 $pdo->beginTransaction();
 
 try {
+    if ($action) {
+        try {
+            $title = trim($_POST['title'] ?? '');
+            $recipientName = trim($_POST['recipient_name'] ?? '');
+            $recipientPhone = trim($_POST['recipient_phone'] ?? '');
+            $address = trim($_POST['address'] ?? '');
+            $apartment = trim($_POST['apartment'] ?? '');
+            $entrance = trim($_POST['entrance'] ?? '');
+            $floor = trim($_POST['floor'] ?? '');
+            $city = trim($_POST['city'] ?? '');
+            $postcode = trim($_POST['postcode'] ?? '');
+            $comment = trim($_POST['comment'] ?? '');
+            $isDefault = isset($_POST['is_default']) ? 1 : 0;
+            if (
+                $recipientName === '' ||
+                $recipientPhone === '' ||
+                $address === '' ||
+                $city === ''
+            ) {
+                header('Location: /addresses.php?error=required');
+                exit;
+            }
+            if ($isDefault) {
+                $stmt = $pdo->prepare("
+                    UPDATE user_addresses
+                    SET is_default = 0
+                    WHERE user_id = ?
+                ");
+
+                $stmt->execute([$userId]);
+            }
+
+            $stmt = $pdo->prepare("
+                INSERT INTO user_addresses (
+                    user_id,
+                    title,
+                    recipient_name,
+                    recipient_phone,
+                    address,
+                    apartment,
+                    entrance,
+                    floor,
+                    city,
+                    postcode,
+                    comment,
+                    is_default
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+
+            $stmt->execute([
+                $userId,
+                $title ?: null,
+                $recipientName,
+                $recipientPhone,
+                $address,
+                $apartment ?: null,
+                $entrance ?: null,
+                $floor ?: null,
+                $city,
+                $postcode ?: null,
+                $comment ?: null,
+                $isDefault
+            ]);
+
+
+        } catch (\Throwable $th) {
+            echo $th;
+        }
+    }
+
+
+
+
+
 
     $sql = "
         SELECT *
@@ -116,15 +202,16 @@ try {
     ";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$userId]);
-
     $address = $stmt->fetch(PDO::FETCH_ASSOC);
+
 
     if (!$address) {
        if (!$address) {
-                $pdo->rollBack();
+            $pdo->rollBack();
+            $_SESSION['message'] =  $action;
 
-                header('Location: cart.php?error=no_address');
-                exit;
+            header('Location: cart.php?error=no_address');
+            exit;
             }
     }
     $addressId = $address['id'];
@@ -136,6 +223,8 @@ try {
             status,
             total,
             currency,
+            customer_email,
+            customer_phone,
             created_at
         )
         VALUES (
@@ -143,6 +232,8 @@ try {
             'pending',
             ?,
             'RUB',
+            ?,
+            ?,
             NOW()
         )
     ";
@@ -150,11 +241,12 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $userId,
-        $finalPrice
+        $finalPrice,
+        $cartItems[0]->user_email,
+        $address['recipient_phone']
+
     ]);
     $orderId = (int) $pdo->lastInsertId();
-
-
 
     $sqlItem = "
         INSERT INTO order_items (
@@ -206,11 +298,9 @@ try {
     ]);
 
     foreach ($cartItems as $item) {
-
         $price = (float) $item->price;
         $discount = (float) $item->discount;
         $quantity = (int) $item->quantity;
-
         $unitPrice =
             $price * (1 - $discount / 100);
 
@@ -258,7 +348,7 @@ try {
                 'type' => 'redirect',
 
                 'return_url' =>
-                    'http://shop.co/payment-return.php?order_id=' . $orderId,
+                    'https://shopco.freedev.app/cart.php',
             ],
 
             'capture' => true,
@@ -323,10 +413,7 @@ try {
         $pdo->rollBack();
     }
 
-
     error_log($e->getMessage());
-
-
     http_response_code(500);
     exit('Ошибка создания заказа');
 }

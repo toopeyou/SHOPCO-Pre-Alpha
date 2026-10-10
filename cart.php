@@ -1,11 +1,12 @@
 <?php
 session_start();
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 require('lib/db.php');
-
 if (!isset($_SESSION['user_id'])) {header('Location: singup.php'); exit('Необходимо авторизоваться');}
 $userId = (int) $_SESSION['user_id'];
 $showAddAddressModal = isset($_GET['error']) && $_GET['error'] === 'no_address';
-
 $sql = "
 SELECT
     ci.variant_id,
@@ -61,7 +62,6 @@ foreach ($cartItems as $item) {
 
     $totalprice += $price * $quantity;
     $discountedPrice = $price * (1 - $discount / 100);
-
     $finalprice += $discountedPrice * $quantity;
 }
 $discountamout = $totalprice - $finalprice;
@@ -87,9 +87,7 @@ $discountamout = $totalprice - $finalprice;
     ?>
     <main class="container px-3 pt-4 pb-5">
         <h1 class="display-5 text-uppercase fw-bold mb-4 mb-md-5">Корзина</h1>
-
         <div class="row g-4 align-items-start">
-
             <div class="col-12 col-lg-7">
                 <div class="border rounded-4 p-3 p-sm-4 bg-white" data-purpose="cart-items-list">
                     <?php if (!$cartItems): ?>
@@ -108,6 +106,7 @@ $discountamout = $totalprice - $finalprice;
                                         <p class="small text-secondary mb-0">Цвет:<span class="text-dark"> <?= htmlspecialchars($item->color) ?></span></p>
                                     </div>
                                     <form method="POST" action="/lib/api/publish/removecart.php">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                         <input type="hidden" id="variant_id" name="variant_id"  value="<?= htmlspecialchars($item->variant_id) ?>">
                                         <button type="submit" aria-label="Remove Gradient Graphic T-shirt" class="btn btn-link text-danger p-0 text-decoration-none" title="Remove Item">
                                             <i class="fa-solid fa-trash"></i>
@@ -123,8 +122,9 @@ $discountamout = $totalprice - $finalprice;
                                             ) * $item->quantity
                                         ) ?>                                   
                                     </span>
-                                    <form method="POST" action="/lib/api/publish/cartchange.php"
-                                        class="quantity-control d-flex align-items-center bg-light rounded-pill px-3 py-2 gap-3">
+                                    <form method="POST" action="/lib/api/publish/cartchange.php" class="quantity-control d-flex align-items-center bg-light rounded-pill px-3 py-2 gap-3">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+
                                         <button type="submit" name="action" value="add" aria-label="Decrease quantity" class="btn btn-link text-dark p-0 text-decoration-none">+</button>
                                         <input type="hidden" id="variant_id" name="variant_id" value="<?= htmlspecialchars($item->variant_id) ?>">
                                         <input type="hidden" name="quantity" value="<?= htmlspecialchars($item->quantity) ?>">
@@ -187,6 +187,7 @@ $discountamout = $totalprice - $finalprice;
                             </div>
                         </div>
                         <form method="POST" action="payment.php" >
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                         <input type="hidden" name="price" value="<?= htmlspecialchars($finalprice + 15) ?>">
                         <button type="submit"
                             class="btn btn-dark w-100 rounded-pill py-3 mt-3 fw-semibold d-flex align-items-center justify-content-center gap-2">
@@ -198,8 +199,9 @@ $discountamout = $totalprice - $finalprice;
                 </aside>
                 <?php endif; ?>
                 <?php
+                    $_SESSION['csrf_token'];
                     $checkout = true;
-                    require('blocks/modal/addadress.php');
+                    require('blocks/modal/addaddress.php');
                 ?>             
                 <?php
                     require('blocks/modal/SelectAddress.php');

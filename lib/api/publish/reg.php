@@ -1,7 +1,6 @@
 <?php
 
 declare(strict_types=1);
-
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
@@ -11,10 +10,19 @@ session_set_cookie_params([
     'samesite' => 'Lax'
 ]);
 
+require_once('../../db.php');
 session_start();
+if (
+    empty($_SESSION['csrf_token']) ||
+    empty($_POST['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
+    $_SESSION['message'] = 'Недействительный запрос. Попробуйте ещё раз.';
+    header('Location: ../../../signup.php');
+    exit;
+}
 
 require_once('../../db.php');
-
 
 $name = trim($_POST['name'] ?? '');
 $lastName = trim($_POST['lastname'] ?? '');
@@ -28,40 +36,32 @@ if (
     $password === ''
 ) {
     $_SESSION['message'] = 'Заполните все поля';
-    $_SESSION['message_type'] = 'error';
-
-    header('Location: ../singup.php');
+    header('Location: ../../../signup.php');
     exit;
 }
 
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $_SESSION['message'] = 'Введите корректную почту';
-    $_SESSION['message_type'] = 'error';
-
-    header('Location: ../singup.php');
+    header('Location: ../../../signup.php');
     exit;
 }
 
 if (mb_strlen($password) < 8) {
     $_SESSION['message'] = 'Пароль должен содержать минимум 8 символов';
-    $_SESSION['message_type'] = 'error';
-
-    header('Location: ../singup.php');
+    header('Location: ../../../signup.php');
     exit;
 }
 
 try {
     $sql = 'SELECT id FROM users WHERE email = ? LIMIT 1';
-
     $query = $pdo->prepare($sql);
     $query->execute([$email]);
 
     if ($query->fetch()) {
         $_SESSION['message'] = 'Пользователь с такой почтой уже существует';
         $_SESSION['message_type'] = 'error';
-
-        header('Location: ../singup.php');
+        header('Location: ../../../signup.php');
         exit;
     }
     $passwordHash = password_hash(
@@ -87,7 +87,7 @@ try {
     $lastInsertId = $pdo->lastInsertId();
 
     session_regenerate_id(true);
-    $getRoleSql = 'SELECT role from Users WHERE id = ?';
+    $getRoleSql = 'SELECT role from users WHERE id = ?';
     $getRoleQuery = $pdo->prepare($getRoleSql);
     $getRoleQuery->execute([$lastInsertId]);
     $getRole = $getRoleQuery->fetch(PDO::FETCH_ASSOC);
@@ -99,34 +99,23 @@ try {
     exit;
 
 } catch (PDOException $e) {
-
     error_log($e->getMessage());
-
     if (
         isset($e->errorInfo[0], $e->errorInfo[1]) &&
         $e->errorInfo[0] === '23000' &&
         (int) $e->errorInfo[1] === 1062
     ) {
         $_SESSION['message'] = 'Пользователь с такой почтой уже существует';
-        $_SESSION['message_type'] = 'error';
-
-        header('Location: ../singup.php');
+        header('Location: ../../../signup.php');
         exit;
     }
-
     $_SESSION['message'] = 'Произошла ошибка. Попробуйте ещё раз.';
-    $_SESSION['message_type'] = 'error';
-
-    header('Location: ../singup.php');
+    header('Location: ../../../signup.php');
     exit;
 
 } catch (Throwable $e) {
-
     error_log($e->getMessage());
-
     $_SESSION['message'] = 'Произошла ошибка. Попробуйте ещё раз.';
-    $_SESSION['message_type'] = 'error';
-
-    header('Location: ../singup.php');
+    header('Location: ../../../signup.php');
     exit;
 }
